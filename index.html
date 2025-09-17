@@ -1,0 +1,207 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Status dos Ingressos • Meu Evento</title>
+  <meta name="description" content="Acompanhe em tempo real a venda de ingressos do evento." />
+  <link rel="preconnect" href="https://www.gstatic.com" crossorigin>
+  <link rel="preconnect" href="https://www.googleapis.com" crossorigin>
+  <style>
+    :root {
+      --bg: #0f1115;
+      --card: #171a21;
+      --text: #eef1f6;
+      --muted: #9aa4b2;
+      --accent: #5ac8fa;
+      --accent-weak: rgba(90, 200, 250, .2);
+      --ok: #34d399;
+      --warn: #fbbf24;
+      --danger: #ef4444;
+    }
+    * { box-sizing: border-box; }
+    body {
+      margin: 0;
+      font-family: system-ui, -apple-system, Segoe UI, Roboto, Ubuntu, Cantarell, Noto Sans, Arial, "Apple Color Emoji","Segoe UI Emoji";
+      background: radial-gradient(1000px 600px at 50% -20%, #1e2330, var(--bg));
+      color: var(--text);
+      display: grid;
+      min-height: 100svh;
+      place-items: center;
+      padding: 24px;
+    }
+    .wrap { width: 100%; max-width: 720px; }
+    .card {
+      background: linear-gradient(180deg, rgba(255,255,255,0.04), rgba(255,255,255,0.02));
+      border: 1px solid rgba(255,255,255,0.08);
+      border-radius: 16px;
+      padding: 28px;
+      box-shadow: 0 12px 40px rgba(0,0,0,.35);
+    }
+    header {
+      display: flex; gap: 16px; align-items: center; margin-bottom: 18px;
+    }
+    .dot {
+      width: 12px; height: 12px; border-radius: 99px;
+      background: var(--ok); box-shadow: 0 0 12px var(--ok), 0 0 24px var(--ok);
+      flex: 0 0 auto;
+    }
+    h1 {
+      font-size: 1.25rem; margin: 0;
+      letter-spacing: .3px;
+    }
+    p.sub { margin: 4px 0 0; color: var(--muted); font-size: .95rem; }
+    .big {
+      display: grid; grid-template-columns: 1fr 1fr; gap: 16px; margin: 18px 0 12px;
+    }
+    .metric {
+      background: var(--card);
+      border: 1px solid rgba(255,255,255,0.06);
+      border-radius: 12px;
+      padding: 16px;
+    }
+    .label { color: var(--muted); font-size: .85rem; letter-spacing: .2px; }
+    .value { font-size: 2rem; font-weight: 700; margin-top: 6px; }
+    .bar-wrap {
+      background: linear-gradient(180deg, rgba(255,255,255,0.03), rgba(255,255,255,0.02));
+      border: 1px solid rgba(255,255,255,0.06);
+      border-radius: 14px;
+      padding: 10px;
+      margin-top: 12px;
+    }
+    .bar-track {
+      width: 100%; height: 16px; border-radius: 10px;
+      background: rgba(255,255,255,.07);
+      overflow: hidden;
+    }
+    .bar {
+      height: 100%; width: 0%;
+      background: linear-gradient(90deg, var(--accent), #60a5fa);
+      box-shadow: 0 0 24px var(--accent-weak) inset;
+      transition: width .6s ease;
+    }
+    .percent {
+      display: flex; justify-content: space-between; font-size: .9rem;
+      color: var(--muted); margin-top: 8px;
+    }
+    footer { margin-top: 18px; color: var(--muted); font-size: .85rem; }
+    .stamp { font-variant-numeric: tabular-nums; }
+    .sold-fast { color: var(--warn); }
+    .sold-max { color: var(--ok); }
+    .alert { color: var(--danger); }
+    a { color: var(--accent); text-decoration: none; }
+    @media (max-width:640px){
+      .big { grid-template-columns: 1fr; }
+    }
+  </style>
+</head>
+<body>
+  <div class="wrap">
+    <div class="card">
+      <header>
+        <span class="dot" aria-hidden="true"></span>
+        <div>
+          <h1>Status dos ingressos — <span id="eventName">Meu Evento</span></h1>
+          <p class="sub">Atualização em tempo real • alvo: <strong id="goalText">500</strong> ingressos</p>
+        </div>
+      </header>
+
+      <div class="big">
+        <div class="metric">
+          <div class="label">Vendidos</div>
+          <div class="value" id="soldValue">—</div>
+        </div>
+        <div class="metric">
+          <div class="label">Restantes</div>
+          <div class="value" id="leftValue">—</div>
+        </div>
+      </div>
+
+      <div class="bar-wrap">
+        <div class="bar-track" role="progressbar" aria-valuemin="0" aria-valuemax="100" aria-valuenow="0" aria-label="Progresso de vendas">
+          <div class="bar" id="bar"></div>
+        </div>
+        <div class="percent">
+          <span><span id="percent">0</span>%</span>
+          <span class="stamp" id="lastUpdate">—</span>
+        </div>
+      </div>
+
+      <footer>
+        <div id="statusMsg"></div>
+        <div style="margin-top:8px">Dúvidas? <a href="mailto:contato@meuevento.com">contato@meuevento.com</a></div>
+      </footer>
+    </div>
+  </div>
+
+  <!-- Firebase SDKs -->
+  <script src="https://www.gstatic.com/firebasejs/10.12.3/firebase-app-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/10.12.3/firebase-firestore-compat.js"></script>
+  <script>
+ const firebaseConfig = {
+  apiKey: "AIzaSyAjEriEiUh-0DXPX9IYyisJmuFQ8XN_Us",
+  authDomain: "meu-evento-e5737.firebaseapp.com",
+  projectId: "meu-evento-e5737",
+  storageBucket: "meu-evento-e5737.appspot.com",
+  messagingSenderId: "23514140586",
+  appId: "1:23514140586:web:2cc72fb326e525caa1aa5d3"
+};
+
+
+    // 2) Configure seu alvo (meta total) e nome do evento
+    const GOAL = 500;            // ajuste sua meta aqui
+    const EVENT_NAME = "Meu Evento";
+
+    // --- Não altere abaixo ---
+    const app = firebase.initializeApp(firebaseConfig);
+    const db = firebase.firestore();
+    const docRef = db.doc("eventStats/sales"); // Documento único com o contador
+
+    document.getElementById("goalText").textContent = GOAL.toLocaleString("pt-BR");
+    document.getElementById("eventName").textContent = EVENT_NAME;
+
+    const soldEl = document.getElementById("soldValue");
+    const leftEl = document.getElementById("leftValue");
+    const percentEl = document.getElementById("percent");
+    const barEl = document.getElementById("bar");
+    const lastUpdateEl = document.getElementById("lastUpdate");
+    const statusMsgEl = document.getElementById("statusMsg");
+
+    const fmtDateTime = (d) => d.toLocaleString("pt-BR", { hour: "2-digit", minute: "2-digit", day: "2-digit", month: "2-digit"});
+
+    function render(sold, updatedAt) {
+      const left = Math.max(GOAL - sold, 0);
+      const pct = Math.max(0, Math.min(100, Math.round((sold / GOAL) * 100)));
+      soldEl.textContent = sold.toLocaleString("pt-BR");
+      leftEl.textContent = left.toLocaleString("pt-BR");
+      percentEl.textContent = pct;
+      barEl.style.width = pct + "%";
+      barEl.parentElement.setAttribute("aria-valuenow", String(pct));
+      lastUpdateEl.textContent = updatedAt ? "Atualizado " + fmtDateTime(updatedAt) : "—";
+
+      if (pct >= 100) {
+        statusMsgEl.innerHTML = "<span class='sold-max'>Meta atingida! 🎉</span>";
+      } else if (pct >= 80) {
+        statusMsgEl.innerHTML = "<span class='sold-fast'>Quase lá! Últimos ingressos!</span>";
+      } else {
+        statusMsgEl.textContent = "";
+      }
+    }
+
+    // Assinatura em tempo real
+    const unsubscribe = firebase.firestore().doc("eventStats/sales").onSnapshot((snap) => {
+      if (snap.exists) {
+        const data = snap.data();
+        const sold = Number(data.sold || 0);
+        const updatedAt = data.updatedAt ? (data.updatedAt.toDate ? data.updatedAt.toDate() : new Date(data.updatedAt)) : null;
+        render(sold, updatedAt);
+      } else {
+        render(0, null);
+      }
+    }, (err) => {
+      document.getElementById("statusMsg").innerHTML = "<span class='alert'>Erro ao conectar. Tente novamente mais tarde.</span>";
+      console.error(err);
+    });
+  </script>
+</body>
+</html>

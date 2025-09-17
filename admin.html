@@ -1,0 +1,131 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Admin • Ingressos</title>
+  <style>
+    body { font-family: system-ui, -apple-system, Segoe UI, Roboto, Arial; background:#0f1115; color:#eef1f6; display:grid; place-items:center; min-height:100svh; padding:24px; }
+    .card { background:#171a21; border:1px solid rgba(255,255,255,.1); border-radius:12px; padding:24px; width:100%; max-width:520px; }
+    label { display:block; margin:8px 0 4px; color:#9aa4b2; font-size:.9rem; }
+    input, button { width:100%; padding:12px; border-radius:10px; border:1px solid rgba(255,255,255,.1); background:#0f1115; color:#eef1f6; }
+    button { cursor:pointer; background:#1f6feb; border-color:transparent; margin-top:10px; }
+    .row { display:grid; grid-template-columns: 1fr 1fr; gap:10px; }
+    .muted { color:#9aa4b2; font-size:.9rem; }
+    .ok { color:#34d399; }
+    .warn { color:#fbbf24; }
+    .err { color:#ef4444; }
+    .actions { display:grid; gap:10px; margin-top:10px; }
+  </style>
+</head>
+<body>
+  <div class="card">
+    <h1>Admin • Ingressos</h1>
+    <p class="muted">Faça login para atualizar o contador em tempo real.</p>
+
+    <div id="authBox">
+      <label>Email</label>
+      <input id="email" type="email" placeholder="voce@exemplo.com" />
+      <label>Senha</label>
+      <input id="password" type="password" placeholder="********" />
+      <button id="btnLogin">Entrar</button>
+      <p id="authMsg" class="muted"></p>
+    </div>
+
+    <div id="panel" style="display:none;">
+      <div class="row">
+        <div>
+          <label>Total (vendidos)</label>
+          <input id="sold" type="number" min="0" step="1" />
+        </div>
+        <div>
+          <label>Meta (GOAL)</label>
+          <input id="goal" type="number" min="1" step="1" />
+        </div>
+      </div>
+      <div class="actions">
+        <button id="btnSave">Salvar valores</button>
+        <button id="btnInc1">+1 ingresso</button>
+        <button id="btnInc5">+5 ingressos</button>
+        <button id="btnLogout" style="background:#374151;">Sair</button>
+      </div>
+      <p id="saveMsg" class="muted"></p>
+    </div>
+  </div>
+
+  <!-- Firebase SDKs -->
+  <script src="https://www.gstatic.com/firebasejs/10.12.3/firebase-app-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/10.12.3/firebase-firestore-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/10.12.3/firebase-auth-compat.js"></script>
+  <script>
+    const firebaseConfig = {
+  apiKey: "AIzaSyAjEriEiUh-0DXPX9IYyisJmuFQ8XN_Us",
+  authDomain: "meu-evento-e5737.firebaseapp.com",
+  projectId: "meu-evento-e5737",
+  storageBucket: "meu-evento-e5737.appspot.com",
+  messagingSenderId: "23514140586",
+  appId: "1:23514140586:web:2cc72fb326e525caa1aa5d3"
+};
+
+    const app = firebase.initializeApp(firebaseConfig);
+    const db = firebase.firestore();
+    const auth = firebase.auth();
+    const docRef = db.doc("eventStats/sales");
+    const cfgRef = db.doc("eventStats/config");
+
+    const $ = (id) => document.getElementById(id);
+    const authBox = $("authBox");
+    const panel = $("panel");
+    const authMsg = $("authMsg");
+    const saveMsg = $("saveMsg");
+    const soldInput = $("sold");
+    const goalInput = $("goal");
+
+    $("btnLogin").onclick = async () => {
+      authMsg.textContent = "Entrando...";
+      try {
+        await auth.signInWithEmailAndPassword($("email").value, $("password").value);
+      } catch (e) {
+        authMsg.textContent = "Erro: " + (e.message || e);
+      }
+    };
+
+    $("btnLogout").onclick = async () => { await auth.signOut(); };
+
+    auth.onAuthStateChanged(async (user) => {
+      if (user) {
+        authBox.style.display = "none";
+        panel.style.display = "block";
+        authMsg.textContent = "";
+        // Carrega valores atuais
+        const snap = await docRef.get();
+        const cfg = await cfgRef.get();
+        soldInput.value = snap.exists ? Number(snap.data().sold || 0) : 0;
+        goalInput.value = cfg.exists ? Number(cfg.data().goal || 500) : 500;
+      } else {
+        authBox.style.display = "block";
+        panel.style.display = "none";
+      }
+    });
+
+    async function save(sold, goal) {
+      saveMsg.textContent = "Salvando...";
+      try {
+        await docRef.set({ sold: Number(sold), updatedAt: firebase.firestore.FieldValue.serverTimestamp() }, { merge: true });
+        await cfgRef.set({ goal: Number(goal) }, { merge: true });
+        saveMsg.innerHTML = "<span class='ok'>Salvo!</span>";
+      } catch (e) {
+        saveMsg.innerHTML = "<span class='err'>Erro: " + (e.message || e) + "</span>";
+      }
+    }
+
+    $("btnSave").onclick = () => save(soldInput.value, goalInput.value);
+    $("btnInc1").onclick = async () => {
+      const v = Number(soldInput.value || 0) + 1; soldInput.value = v; await save(v, goalInput.value);
+    };
+    $("btnInc5").onclick = async () => {
+      const v = Number(soldInput.value || 0) + 5; soldInput.value = v; await save(v, goalInput.value);
+    };
+  </script>
+</body>
+</html>
