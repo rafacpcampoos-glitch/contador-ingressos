@@ -58,14 +58,15 @@
   <script src="https://www.gstatic.com/firebasejs/10.12.3/firebase-firestore-compat.js"></script>
   <script src="https://www.gstatic.com/firebasejs/10.12.3/firebase-auth-compat.js"></script>
   <script>
+    // 🔑 Substitua pelos dados do seu firebaseConfig
     const firebaseConfig = {
-  apiKey: "AIzaSyAjEriEiUh-0DXPX9IYyisJmuFQ8XN_Us",
-  authDomain: "meu-evento-e5737.firebaseapp.com",
-  projectId: "meu-evento-e5737",
-  storageBucket: "meu-evento-e5737.appspot.com",
-  messagingSenderId: "23514140586",
-  appId: "1:23514140586:web:2cc72fb326e525caa1aa5d3"
-};
+      apiKey: "SUA_API_KEY",
+      authDomain: "SEU_PROJECT_ID.firebaseapp.com",
+      projectId: "SEU_PROJECT_ID",
+      storageBucket: "SEU_PROJECT_ID.appspot.com",
+      messagingSenderId: "SENDER_ID",
+      appId: "APP_ID"
+    };
 
     const app = firebase.initializeApp(firebaseConfig);
     const db = firebase.firestore();
